@@ -43,7 +43,8 @@ NOTE: The GitHub repository also contains the dataset for the assignment so you 
     
 First, we will load the packages we need throughout this assignment.  
   
-```{r packages, echo = TRUE, results= "hide", message=F, warning=F}
+
+```r
 library(dplyr)
 library(lubridate)
 library(ggplot2)
@@ -55,11 +56,33 @@ Show any code that is needed to
 1. Load the data (i.e. read.csv())  
 2. Process/transform the data (if necessary) into a format suitable for your analysis  
   
-```{r read, echo = TRUE}
+
+```r
 data <- read.table(unz("repdata_data_activity.zip", "activity.csv"), header=T, quote="\"", sep=",")
 data$date <- as.Date(data$date, "%Y-%m-%d")
 summary(data)
+```
+
+```
+##      steps             date               interval     
+##  Min.   :  0.00   Min.   :2012-10-01   Min.   :   0.0  
+##  1st Qu.:  0.00   1st Qu.:2012-10-16   1st Qu.: 588.8  
+##  Median :  0.00   Median :2012-10-31   Median :1177.5  
+##  Mean   : 37.38   Mean   :2012-10-31   Mean   :1177.5  
+##  3rd Qu.: 12.00   3rd Qu.:2012-11-15   3rd Qu.:1766.2  
+##  Max.   :806.00   Max.   :2012-11-30   Max.   :2355.0  
+##  NA's   :2304
+```
+
+```r
 str(data)
+```
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Date, format: "2012-10-01" "2012-10-01" ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
 ```
     
 
@@ -76,7 +99,8 @@ For this part of the assignment, you can ignore the missing values in the datase
 The number of breaks in the histogram is based upon the Freedman-Diaconis rule 
 which is very robust and works well in practice.   
 
-```{r steps_by_day_graph, echo = TRUE}
+
+```r
 #data_tbl <- tbl_df(data)
 #data_tbl_notna <- filter(data_tbl,!is.na(steps))
 #data_tbl_grouped <- group_by(data_tbl_notna,date)
@@ -84,16 +108,18 @@ which is very robust and works well in practice.
 
 steps_by_day <- data %>% tbl_df %>% filter(!is.na(steps)) %>% group_by(date) %>% summarize(n_steps = sum(steps))
 hist(steps_by_day$n_steps, col="gold", breaks="FD")
-
 ```
 
-```{r steps_by_day_report, echo = TRUE}
+![plot of chunk steps_by_day_graph](figure/steps_by_day_graph-1.png) 
+
+
+```r
 mean_steps_per_day <- as.integer(round(mean(steps_by_day$n_steps), digits=0))
 median_steps_per_day <- median(steps_by_day$n_steps)
 ```
 
-The mean of the total number of steps taken per day is `r mean_steps_per_day`.  
-The median of the total number of steps taken per day is `r median_steps_per_day`.  
+The mean of the total number of steps taken per day is 10766.  
+The median of the total number of steps taken per day is 10765.  
 
 ##(3) What is the average daily activity pattern?  
   
@@ -103,17 +129,22 @@ The median of the total number of steps taken per day is `r median_steps_per_day
   
 More info can be found at http://www.statmethods.net/advstats/timeseries.html  
   
-```{r timeseries, echo = TRUE}
+
+```r
 # subset the time series (during the months of October and November, 2012)
 data_tbl_notna <- filter(tbl_df(data),!is.na(steps))
 summary <- aggregate(data_tbl_notna$steps, list(interval = data_tbl_notna$interval), mean)
 plot(summary$interval,summary$x, type = "l")
+```
 
+![plot of chunk timeseries](figure/timeseries-1.png) 
+
+```r
 max_steps <- max(summary$x)
 max_stepstime <- as.integer(subset(summary,summary$x==max_steps)$interval)
 ```
 
-The 5 minute interval `r max_stepstime` is the one which on average across all the days in the dataset, contains the maximum number of steps.  
+The 5 minute interval 835 is the one which on average across all the days in the dataset, contains the maximum number of steps.  
 
 ##(4) Imputing missing values  
   
@@ -124,7 +155,8 @@ Note that there are a number of days/intervals where there are missing values (c
 3.Create a new dataset that is equal to the original dataset but with the missing data filled in.  
 4.Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?  
 
-```{r missing_values, echo = TRUE}
+
+```r
 # (1) number of missing values
 data_missing <- data[!complete.cases(data),]
 n_na <- as.integer(nrow(data_missing))
@@ -144,7 +176,13 @@ totaldata$steps2 <- ifelse(is.na(totaldata$steps),totaldata$n_steps,totaldata$st
 keeps <- c("steps2","date","interval")
 data2 <- totaldata[keeps]
 nrow(data2[!complete.cases(data2),])
+```
 
+```
+## [1] 0
+```
+
+```r
 # (4) histogram
 data2_tbl <- tbl_df(data2)
 data2_tbl_grouped <- group_by(data2_tbl,date)
@@ -152,26 +190,29 @@ steps_by_day2 <- summarize(data2_tbl_grouped, n_steps = sum(steps2))
 
 #hist(steps_by_day2$n_steps, col="green", breaks="FD")
 hist(steps_by_day2$n_steps, col="green", breaks=10)
+```
 
+![plot of chunk missing_values](figure/missing_values-1.png) 
+
+```r
 mean_steps_per_day2 <- as.integer(round(mean(steps_by_day2$n_steps), digits=0))
 median_steps_per_day2 <- median(steps_by_day2$n_steps)
 
 values0_before_imputing <- as.integer(nrow(subset(data,steps == 0)))
 values0_after_imputing <- as.integer(nrow(subset(data2,steps2 == 0)))
-
 ```
 
-The total number of missing values in the dataset is equal to `r n_na`.  
-There are `r n_na_steps`/`r n_na_date`/`r n_na_interval` missing values for the variables steps, date and interval.
+The total number of missing values in the dataset is equal to 2304.  
+There are 2304/0/0 missing values for the variables steps, date and interval.
   
 By imputing the missing values by the median of all values for the corresponding 5-minute interval, many missing values are now replaced by a value of 0.  
-0-values in the dataset increases from `r values0_before_imputing` to `r values0_after_imputing`.  
+0-values in the dataset increases from 11014 to 12894.  
   
 After imputing the missing values:  
-The mean of the total number of steps taken per day decreases from `r mean_steps_per_day` to 
-`r mean_steps_per_day2`.  
-The median of the total number of steps taken per day decreases from `r median_steps_per_day` to
-`r median_steps_per_day2`.  
+The mean of the total number of steps taken per day decreases from 10766 to 
+9504.  
+The median of the total number of steps taken per day decreases from 10765 to
+10395.  
   
    
 ##(5) Are there differences in activity patterns between weekdays and weekends?
@@ -182,8 +223,8 @@ Use the dataset with the filled-in missing values for this part.
 1.Create a new factor variable in the dataset with two levels - "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.  
 2.Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
   
-```{r weekdays, echo = TRUE}
 
+```r
 #data2$weekday <- weekdays(data2$date)
 #data2$weekdaynr <- wday(data2$date)
 data2$daytype <- ifelse(wday(data2$date) == 7 | wday(data2$date) == 1, "weekend", "weekday")
@@ -191,9 +232,16 @@ data2$daytype_fac = factor(data2$daytype,levels=c("weekend","weekday"))
 levels(data2$daytype_fac)
 ```
 
-```{r panel_plot, echo = TRUE}
+```
+## [1] "weekend" "weekday"
+```
+
+
+```r
 paneldata_tbl_grouped <- group_by(data2,daytype_fac,interval)
 panelsteps_by_interval <- summarize(paneldata_tbl_grouped, avg_steps = mean(steps2))
 
 qplot(interval, avg_steps, data=panelsteps_by_interval, facets = daytype_fac ~., geom = "line")
 ```
+
+![plot of chunk panel_plot](figure/panel_plot-1.png) 
